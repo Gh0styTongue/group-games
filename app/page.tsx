@@ -3,12 +3,19 @@
 import { useState } from "react";
 import Image from "next/image";
 
+// Define the type for a Roblox game object
+interface Game {
+  id: number;
+  name: string;
+  thumbnailUrl: string;
+}
+
 // The main page component for the Roblox Group Games Finder
 export default function Home() {
   // State to store the user's input for the Roblox Group ID
   const [groupId, setGroupId] = useState("");
-  // State to hold the list of games fetched from the API
-  const [games, setGames] = useState([]);
+  // State to hold the list of games fetched from the API, now with a defined type
+  const [games, setGames] = useState<Game[]>([]);
   // State to manage the loading status during API calls
   const [isLoading, setIsLoading] = useState(false);
   // State to store any error messages that occur. The state is now typed to accept both string and null.
@@ -58,7 +65,7 @@ export default function Home() {
         throw new Error("Failed to fetch games. Please check the Group ID.");
       }
 
-      const data = await response.json();
+      const data: Game[] = await response.json();
       setGames(data);
     } catch (err) {
       console.error(err);
