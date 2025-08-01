@@ -3,11 +3,23 @@
 import { useState } from "react";
 import Image from "next/image";
 
-// Define the type for a Roblox game object
+// Define the type for a Roblox game object based on the API response
 interface Game {
   id: number;
   name: string;
-  thumbnailUrl: string;
+  description: string | null;
+  creator: {
+    id: number;
+    type: string;
+  };
+  rootPlace: {
+    id: number;
+    type: string;
+  };
+  created: string;
+  updated: string;
+  placeVisits: number;
+  thumbnailUrl?: string; // Add optional thumbnail URL field
 }
 
 // The main page component for the Roblox Group Games Finder
@@ -20,53 +32,65 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   // State to store any error messages that occur. The state is now typed to accept both string and null.
   const [error, setError] = useState<string | null>(null);
+  // State to hold the cursor for the next page of results
+  const [nextPageCursor, setNextPageCursor] = useState<string | null>(null);
 
   /**
-   * Handles the search button click event.
-   * This function will eventually call a Next.js API route to fetch data.
-   * For now, it's a placeholder with a simulated delay.
+   * Fetches games for a given group ID and an optional pagination cursor.
+   *
+   * @param cursor The cursor for the next page of results.
    */
-  const handleSearch = async () => {
-    // Basic validation to ensure a Group ID is entered
-    if (!groupId) {
-      setError("Please enter a Roblox Group ID.");
-      return;
-    }
-
-    // Reset previous states and show a loading indicator
-    setError(null);
-    setGames([]);
+  const fetchGames = async (cursor: string | null = null) => {
+    // Show a loading indicator
     setIsLoading(true);
+    setError(null);
 
     try {
-      // In a real implementation, you would replace this with a fetch call
-      // to your own Next.js API route, e.g.:
-      // const response = await fetch(`/api/roblox-games?groupId=${groupId}`);
-      //
-      // For this example, we'll simulate a successful API response.
-      // This simulated data will be replaced by real data from the Roblox API.
-      const simulatedResponse = await new Promise<Response>((resolve) =>
-        setTimeout(() => {
-          resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve([
-                { id: 1, name: "Simulated Game 1", thumbnailUrl: "https://placehold.co/150x150/png" },
-                { id: 2, name: "Simulated Game 2", thumbnailUrl: "https://placehold.co/150x150/png" },
-                { id: 3, name: "Simulated Game 3", thumbnailUrl: "https://placehold.co/150x150/png" },
-              ]),
-          } as Response);
-        }, 1500)
-      );
-      
-      const response = simulatedResponse;
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch games. Please check the Group ID.");
+      const apiUrl = new URL(`https://games.roblox.com/v2/groups/${groupId}/gamesV2`);
+      apiUrl.searchParams.append('accessFilter', '1');
+      apiUrl.searchParams.append('limit', '100');
+      apiUrl.searchParams.append('sortOrder', 'Asc');
+      if (cursor) {
+        apiUrl.searchParams.append('cursor', cursor);
       }
 
-      const data: Game[] = await response.json();
-      setGames(data);
+      // Fetch game list
+      const gamesResponse = await fetch(apiUrl.toString());
+      if (!gamesResponse.ok) {
+        throw new Error("Failed to fetch games. Please check the Group ID.");
+      }
+      const gamesData = await gamesResponse.json();
+
+      if (gamesData.data.length === 0) {
+        setGames([]);
+        setNextPageCursor(null);
+        return;
+      }
+      
+      // Extract place IDs to get thumbnails
+      const placeIds = gamesData.data.map((game: any) => game.rootPlace.id).join(',');
+      const thumbnailsUrl = `https://thumbnails.roblox.com/v1/places/place-thumbnails?placeIds=${placeIds}&size=150x150&format=Png&is.Circular=false`;
+
+      // Fetch thumbnails for all games in the list
+      const thumbnailsResponse = await fetch(thumbnailsUrl);
+      if (!thumbnailsResponse.ok) {
+        throw new Error("Failed to fetch game thumbnails.");
+      }
+      const thumbnailsData = await thumbnailsResponse.json();
+      
+      // Merge game data with their respective thumbnail URLs
+      const gamesWithThumbnails: Game[] = gamesData.data.map((game: any) => {
+        const thumbnail = thumbnailsData.data.find((thumb: any) => thumb.placeId === game.rootPlace.id);
+        return {
+          ...game,
+          thumbnailUrl: thumbnail ? thumbnail.imageUrl : `https://placehold.co/150x150/png?text=${game.name.charAt(0)}`
+        };
+      });
+      
+      // Update the games state, appending new games if a cursor was used
+      setGames(prevGames => [...prevGames, ...gamesWithThumbnails]);
+      setNextPageCursor(gamesData.nextPageCursor);
+
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {
@@ -77,6 +101,30 @@ export default function Home() {
     } finally {
       // Always stop the loading indicator
       setIsLoading(false);
+    }
+  };
+
+  /**
+   * Handles the initial search button click.
+   */
+  const handleSearch = () => {
+    if (!groupId) {
+      setError("Please enter a Roblox Group ID.");
+      return;
+    }
+    
+    // Reset states for a new search
+    setGames([]);
+    setNextPageCursor(null);
+    fetchGames(null);
+  };
+  
+  /**
+   * Handles the "Load More" button click.
+   */
+  const handleLoadMore = () => {
+    if (nextPageCursor) {
+      fetchGames(nextPageCursor);
     }
   };
 
@@ -128,34 +176,49 @@ export default function Home() {
 
           {/* Games list display */}
           {games.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
-              {games.map((game) => (
-                <div
-                  key={game.id}
-                  className="bg-gray-700 rounded-lg overflow-hidden shadow-md"
-                >
-                  <Image
-                    src={game.thumbnailUrl}
-                    alt={`${game.name} thumbnail`}
-                    width={150}
-                    height={150}
-                    className="w-full h-auto object-cover"
-                    priority
-                  />
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-gray-100">{game.name}</h3>
-                    <a
-                      href={`https://www.roblox.com/games/${game.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline mt-2 inline-block"
-                    >
-                      Play Game
-                    </a>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+                {games.map((game) => (
+                  <div
+                    key={game.id}
+                    className="bg-gray-700 rounded-lg overflow-hidden shadow-md"
+                  >
+                    <Image
+                      src={game.thumbnailUrl || `https://placehold.co/150x150/png?text=No+Image`}
+                      alt={`${game.name} thumbnail`}
+                      width={150}
+                      height={150}
+                      className="w-full h-auto object-cover"
+                      priority
+                    />
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-100">{game.name}</h3>
+                      <p className="text-sm text-gray-400 mt-1 line-clamp-3">{game.description}</p>
+                      <a
+                        href={`https://www.roblox.com/games/${game.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline mt-2 inline-block"
+                      >
+                        Play Game
+                      </a>
+                    </div>
                   </div>
+                ))}
+              </div>
+              {/* Load More Button */}
+              {nextPageCursor && (
+                <div className="text-center mt-8">
+                  <button
+                    className="p-3 rounded-md bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleLoadMore}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Loading..." : "Load More"}
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
 
           {/* Empty state display */}
