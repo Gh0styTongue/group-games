@@ -11,8 +11,8 @@ export default function Home() {
   const [games, setGames] = useState([]);
   // State to manage the loading status during API calls
   const [isLoading, setIsLoading] = useState(false);
-  // State to store any error messages that occur
-  const [error, setError] = useState(null);
+  // State to store any error messages that occur. The state is now typed to accept both string and null.
+  const [error, setError] = useState<string | null>(null);
 
   /**
    * Handles the search button click event.
@@ -38,7 +38,7 @@ export default function Home() {
       //
       // For this example, we'll simulate a successful API response.
       // This simulated data will be replaced by real data from the Roblox API.
-      const simulatedResponse = await new Promise((resolve) =>
+      const simulatedResponse = await new Promise<Response>((resolve) =>
         setTimeout(() => {
           resolve({
             ok: true,
@@ -48,7 +48,7 @@ export default function Home() {
                 { id: 2, name: "Simulated Game 2", thumbnailUrl: "https://placehold.co/150x150/png" },
                 { id: 3, name: "Simulated Game 3", thumbnailUrl: "https://placehold.co/150x150/png" },
               ]),
-          });
+          } as Response);
         }, 1500)
       );
       
@@ -62,7 +62,11 @@ export default function Home() {
       setGames(data);
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
     } finally {
       // Always stop the loading indicator
       setIsLoading(false);
