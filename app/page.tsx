@@ -1,103 +1,160 @@
+"use client"; // This component will use client-side features like useState and useEffect
+
+import { useState } from "react";
 import Image from "next/image";
 
+// The main page component for the Roblox Group Games Finder
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // State to store the user's input for the Roblox Group ID
+  const [groupId, setGroupId] = useState("");
+  // State to hold the list of games fetched from the API
+  const [games, setGames] = useState([]);
+  // State to manage the loading status during API calls
+  const [isLoading, setIsLoading] = useState(false);
+  // State to store any error messages that occur
+  const [error, setError] = useState(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  /**
+   * Handles the search button click event.
+   * This function will eventually call a Next.js API route to fetch data.
+   * For now, it's a placeholder with a simulated delay.
+   */
+  const handleSearch = async () => {
+    // Basic validation to ensure a Group ID is entered
+    if (!groupId) {
+      setError("Please enter a Roblox Group ID.");
+      return;
+    }
+
+    // Reset previous states and show a loading indicator
+    setError(null);
+    setGames([]);
+    setIsLoading(true);
+
+    try {
+      // In a real implementation, you would replace this with a fetch call
+      // to your own Next.js API route, e.g.:
+      // const response = await fetch(`/api/roblox-games?groupId=${groupId}`);
+      //
+      // For this example, we'll simulate a successful API response.
+      // This simulated data will be replaced by real data from the Roblox API.
+      const simulatedResponse = await new Promise((resolve) =>
+        setTimeout(() => {
+          resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve([
+                { id: 1, name: "Simulated Game 1", thumbnailUrl: "https://placehold.co/150x150/png" },
+                { id: 2, name: "Simulated Game 2", thumbnailUrl: "https://placehold.co/150x150/png" },
+                { id: 3, name: "Simulated Game 3", thumbnailUrl: "https://placehold.co/150x150/png" },
+              ]),
+          });
+        }, 1500)
+      );
+      
+      const response = simulatedResponse;
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch games. Please check the Group ID.");
+      }
+
+      const data = await response.json();
+      setGames(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      // Always stop the loading indicator
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen p-8 sm:p-20 flex flex-col items-center justify-center bg-gray-900 text-white font-sans">
+      <main className="flex flex-col items-center gap-8 w-full max-w-2xl bg-gray-800 p-8 rounded-xl shadow-lg">
+        {/* Page Title */}
+        <h1 className="text-4xl font-bold text-center text-blue-400">
+          Roblox Group Games Finder
+        </h1>
+        <p className="text-lg text-gray-300 text-center">
+          Enter a Roblox Group ID to find a list of their games.
+        </p>
+
+        {/* Input and Search Button */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
+          <input
+            type="text"
+            className="flex-grow p-3 rounded-md bg-gray-700 text-white placeholder-gray-400 border border-transparent focus:border-blue-500 focus:outline-none transition-colors"
+            placeholder="Enter Group ID"
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value)}
+            disabled={isLoading}
+          />
+          <button
+            className="p-3 rounded-md bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSearch}
+            disabled={isLoading}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {isLoading ? "Searching..." : "Search"}
+          </button>
+        </div>
+
+        {/* Dynamic Display Area */}
+        <div className="w-full mt-4">
+          {/* Loading state display */}
+          {isLoading && (
+            <div className="flex justify-center items-center h-24">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            </div>
+          )}
+
+          {/* Error state display */}
+          {error && (
+            <div className="text-red-400 text-center p-4 bg-red-900 rounded-md">
+              <p>{error}</p>
+            </div>
+          )}
+
+          {/* Games list display */}
+          {games.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+              {games.map((game) => (
+                <div
+                  key={game.id}
+                  className="bg-gray-700 rounded-lg overflow-hidden shadow-md"
+                >
+                  <Image
+                    src={game.thumbnailUrl}
+                    alt={`${game.name} thumbnail`}
+                    width={150}
+                    height={150}
+                    className="w-full h-auto object-cover"
+                    priority
+                  />
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-100">{game.name}</h3>
+                    <a
+                      href={`https://www.roblox.com/games/${game.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline mt-2 inline-block"
+                    >
+                      Play Game
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty state display */}
+          {!isLoading && !error && games.length === 0 && groupId && (
+            <div className="text-center text-gray-500 p-4">
+              No games found for this group.
+            </div>
+          )}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
