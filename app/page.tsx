@@ -37,6 +37,7 @@ export default function Home() {
 
   /**
    * Fetches games for a given group ID and an optional pagination cursor.
+   * This function now calls a local API route to bypass CORS.
    *
    * @param cursor The cursor for the next page of results.
    */
@@ -46,18 +47,18 @@ export default function Home() {
     setError(null);
 
     try {
-      const apiUrl = new URL(`https://games.roblox.com/v2/groups/${groupId}/gamesV2`);
-      apiUrl.searchParams.append('accessFilter', '1');
-      apiUrl.searchParams.append('limit', '100');
-      apiUrl.searchParams.append('sortOrder', 'Asc');
+      const apiUrl = new URL(`/api/roblox-games`);
+      apiUrl.searchParams.append('groupId', groupId);
       if (cursor) {
         apiUrl.searchParams.append('cursor', cursor);
       }
 
-      // Fetch game list
+      // Fetch game list from local API route
       const gamesResponse = await fetch(apiUrl.toString());
       if (!gamesResponse.ok) {
-        throw new Error("Failed to fetch games. Please check the Group ID.");
+        // If the local API route returns an error, read the error message
+        const errorData = await gamesResponse.json();
+        throw new Error(errorData.error);
       }
       const gamesData = await gamesResponse.json();
 
@@ -66,26 +67,10 @@ export default function Home() {
         setNextPageCursor(null);
         return;
       }
-      
-      // Extract place IDs to get thumbnails
-      const placeIds = gamesData.data.map((game: any) => game.rootPlace.id).join(',');
-      const thumbnailsUrl = `https://thumbnails.roblox.com/v1/places/place-thumbnails?placeIds=${placeIds}&size=150x150&format=Png&is.Circular=false`;
 
-      // Fetch thumbnails for all games in the list
-      const thumbnailsResponse = await fetch(thumbnailsUrl);
-      if (!thumbnailsResponse.ok) {
-        throw new Error("Failed to fetch game thumbnails.");
-      }
-      const thumbnailsData = await thumbnailsResponse.json();
-      
-      // Merge game data with their respective thumbnail URLs
-      const gamesWithThumbnails: Game[] = gamesData.data.map((game: any) => {
-        const thumbnail = thumbnailsData.data.find((thumb: any) => thumb.placeId === game.rootPlace.id);
-        return {
-          ...game,
-          thumbnailUrl: thumbnail ? thumbnail.imageUrl : `https://placehold.co/150x150/png?text=${game.name.charAt(0)}`
-        };
-      });
+      // Merge game data with their respective thumbnail URLs (this logic is now in the API route)
+      // The API route will return a combined data structure
+      const gamesWithThumbnails: Game[] = gamesData.data;
       
       // Update the games state, appending new games if a cursor was used
       setGames(prevGames => [...prevGames, ...gamesWithThumbnails]);
