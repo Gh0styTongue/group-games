@@ -19,6 +19,7 @@ interface Game {
   updated: string;
   placeVisits: number;
   thumbnailUrl?: string;
+  isPlayable: boolean;
 }
 
 export default function Home() {
@@ -91,6 +92,15 @@ export default function Home() {
     }
   };
 
+  const formatDateTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleString();
+  };
+  
+  const formatNumber = (num: number) => {
+    return num.toLocaleString();
+  }
+
   return (
     <div className="min-h-screen p-8 sm:p-20 flex flex-col items-center justify-center bg-gray-900 text-white font-sans">
       <main className="flex flex-col items-center gap-8 w-full max-w-2xl bg-gray-800 p-8 rounded-xl shadow-lg">
@@ -138,7 +148,9 @@ export default function Home() {
                 {games.map((game) => (
                   <div
                     key={game.id}
-                    className="bg-gray-700 rounded-lg overflow-hidden shadow-md"
+                    className={`bg-gray-700 rounded-lg overflow-hidden shadow-md border-4 ${
+                      game.isPlayable ? 'border-green-500' : 'border-red-500'
+                    }`}
                   >
                     <Image
                       src={game.thumbnailUrl || `https://placehold.co/150x150/png?text=No+Image`}
@@ -152,6 +164,20 @@ export default function Home() {
                     <div className="p-4">
                       <h3 className="text-lg font-semibold text-gray-100">{game.name}</h3>
                       <p className="text-sm text-gray-400 mt-1 line-clamp-3">{game.description}</p>
+                      <div className="mt-4 text-xs text-gray-400 space-y-1">
+                        <p>
+                          <span className="font-semibold text-gray-300">Created:</span> {formatDateTime(game.created)}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-gray-300">Updated:</span> {formatDateTime(game.updated)}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-gray-300">Visits:</span> {formatNumber(game.placeVisits)}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-gray-300">Playable:</span> {game.isPlayable ? 'Yes' : 'No'}
+                        </p>
+                      </div>
                       <a
                         href={`https://www.roblox.com/games/${game.rootPlace.id}`}
                         target="_blank"
