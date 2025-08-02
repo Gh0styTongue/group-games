@@ -36,11 +36,13 @@ export async function GET(request: Request) {
     // Extract placeIds from the games data
     const placeIds = gamesData.data.map((game: any) => game.rootPlace.id).join(',');
 
-    // Fetch thumbnails for the games
-    const thumbnailsApiUrl = new URL(`https://thumbnails.roblox.com/v1/places/place-thumbnails`);
+    // Fetch game icons using the new API endpoint
+    const thumbnailsApiUrl = new URL(`https://thumbnails.roblox.com/v1/places/gameicons`);
     thumbnailsApiUrl.searchParams.append('placeIds', placeIds);
+    thumbnailsApiUrl.searchParams.append('returnPolicy', 'PlaceHolder');
     thumbnailsApiUrl.searchParams.append('size', '150x150');
     thumbnailsApiUrl.searchParams.append('format', 'Png');
+    thumbnailsApiUrl.searchParams.append('isCircular', 'false');
 
     const thumbnailsResponse = await fetch(thumbnailsApiUrl.toString());
     if (!thumbnailsResponse.ok) {
@@ -50,9 +52,9 @@ export async function GET(request: Request) {
 
     const thumbnailsData = thumbnailsResponse.ok ? await thumbnailsResponse.json() : { data: [] };
 
-    // Merge games data with thumbnail URLs
+    // Merge games data with thumbnail URLs, using 'targetId' from the new API
     const gamesWithThumbnails = gamesData.data.map((game: any) => {
-      const thumbnail = thumbnailsData.data.find((thumb: any) => thumb.placeId === game.rootPlace.id);
+      const thumbnail = thumbnailsData.data.find((thumb: any) => thumb.targetId === game.rootPlace.id);
       return {
         ...game,
         thumbnailUrl: thumbnail ? thumbnail.imageUrl : `https://placehold.co/150x150/png?text=No+Image`,
