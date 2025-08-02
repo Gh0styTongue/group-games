@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
     // Fetch game details to get isPlayable status
     const placeDetailsApiUrl = new URL(`https://games.roblox.com/v1/games/multiget-place-details`);
-    placeIds.forEach(id => placeDetailsApiUrl.searchParams.append('placeIds', id));
+    placeIds.forEach((id: string) => placeDetailsApiUrl.searchParams.append('placeIds', id));
 
     const placeDetailsResponse = await fetch(placeDetailsApiUrl.toString());
     const placeDetailsData = placeDetailsResponse.ok ? await placeDetailsResponse.json() : [];
