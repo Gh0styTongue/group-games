@@ -148,9 +148,7 @@ export default function Home() {
                 {games.map((game) => (
                   <div
                     key={game.id}
-                    className={`bg-gray-700 rounded-lg overflow-hidden shadow-md border-4 ${
-                      game.isPlayable ? 'border-green-500' : 'border-red-500'
-                    }`}
+                    className={`bg-gray-700 rounded-lg overflow-hidden shadow-md`}
                   >
                     <Image
                       src={game.thumbnailUrl || `https://placehold.co/150x150/png?text=No+Image`}
@@ -173,9 +171,6 @@ export default function Home() {
                         </p>
                         <p>
                           <span className="font-semibold text-gray-300">Visits:</span> {formatNumber(game.placeVisits)}
-                        </p>
-                        <p>
-                          <span className="font-semibold text-gray-300">Playable:</span> {game.isPlayable ? 'Yes' : 'No'}
                         </p>
                       </div>
                       <a
