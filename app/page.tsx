@@ -46,7 +46,7 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
 
-    // Add a robust check before constructing the URL
+    // Add a robust check before proceeding
     if (!groupId) {
       setError("Please enter a Roblox Group ID.");
       setIsLoading(false);
@@ -54,14 +54,14 @@ export default function Home() {
     }
 
     try {
-      const apiUrl = new URL(`/api/roblox-games`);
-      apiUrl.searchParams.append('groupId', groupId);
+      // Construct the URL string manually to avoid the URL constructor error
+      let apiUrl = `/api/roblox-games?groupId=${groupId}`;
       if (cursor) {
-        apiUrl.searchParams.append('cursor', cursor);
+        apiUrl += `&cursor=${cursor}`;
       }
 
       // Fetch game list from local API route
-      const gamesResponse = await fetch(apiUrl.toString());
+      const gamesResponse = await fetch(apiUrl);
       if (!gamesResponse.ok) {
         // If the local API route returns an error, read the error message
         const errorData = await gamesResponse.json();
