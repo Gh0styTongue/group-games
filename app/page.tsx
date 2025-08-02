@@ -44,6 +44,8 @@ export default function Home() {
       if (cursor) {
         apiUrl += `&cursor=${cursor}`;
       }
+      // Add a sort order parameter to the request
+      apiUrl += `&sortOrder=Desc`;
 
       const gamesResponse = await fetch(apiUrl);
       if (!gamesResponse.ok) {
