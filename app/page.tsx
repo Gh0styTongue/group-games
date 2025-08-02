@@ -46,6 +46,13 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
 
+    // Add a robust check before constructing the URL
+    if (!groupId) {
+      setError("Please enter a Roblox Group ID.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const apiUrl = new URL(`/api/roblox-games`);
       apiUrl.searchParams.append('groupId', groupId);
