@@ -34,11 +34,18 @@ export async function GET(request: Request) {
     }
     
     // Extract placeIds from the games data
-    const placeIds = gamesData.data.map((game: any) => game.rootPlace.id).join(',');
+    const placeIds = gamesData.data.map((game: any) => game.rootPlace.id);
+
+    // Fetch game details to get isPlayable status
+    const placeDetailsApiUrl = new URL(`https://games.roblox.com/v1/games/multiget-place-details`);
+    placeIds.forEach(id => placeDetailsApiUrl.searchParams.append('placeIds', id));
+
+    const placeDetailsResponse = await fetch(placeDetailsApiUrl.toString());
+    const placeDetailsData = placeDetailsResponse.ok ? await placeDetailsResponse.json() : [];
 
     // Fetch game icons using the new API endpoint
     const thumbnailsApiUrl = new URL(`https://thumbnails.roblox.com/v1/places/gameicons`);
-    thumbnailsApiUrl.searchParams.append('placeIds', placeIds);
+    thumbnailsApiUrl.searchParams.append('placeIds', placeIds.join(','));
     thumbnailsApiUrl.searchParams.append('returnPolicy', 'PlaceHolder');
     thumbnailsApiUrl.searchParams.append('size', '150x150');
     thumbnailsApiUrl.searchParams.append('format', 'Png');
@@ -46,18 +53,19 @@ export async function GET(request: Request) {
 
     const thumbnailsResponse = await fetch(thumbnailsApiUrl.toString());
     if (!thumbnailsResponse.ok) {
-      // In case of a thumbnail fetch failure, we still return the game data without thumbnails
       console.error('Failed to fetch thumbnails from Roblox API');
     }
 
     const thumbnailsData = thumbnailsResponse.ok ? await thumbnailsResponse.json() : { data: [] };
 
-    // Merge games data with thumbnail URLs, using 'targetId' from the new API
+    // Merge games data with thumbnail URLs and isPlayable status
     const gamesWithThumbnails = gamesData.data.map((game: any) => {
       const thumbnail = thumbnailsData.data.find((thumb: any) => thumb.targetId === game.rootPlace.id);
+      const details = placeDetailsData.find((detail: any) => detail.placeId === game.rootPlace.id);
       return {
         ...game,
         thumbnailUrl: thumbnail ? thumbnail.imageUrl : `https://placehold.co/150x150/png?text=No+Image`,
+        isPlayable: details ? details.isPlayable : false,
       };
     });
 
