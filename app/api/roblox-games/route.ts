@@ -1,19 +1,16 @@
 import { NextResponse } from 'next/server';
 
-// Define the API route handler for GET requests
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get('groupId');
     const cursor = searchParams.get('cursor');
 
-    // Validate that a groupId was provided
     if (!groupId) {
       return NextResponse.json({ error: 'Group ID is required' }, { status: 400 });
     }
 
-    // Construct the URL for the Roblox games API
-    const gamesApiUrl = new URL(`https://games.roblox.com/v2/groups/${groupId}/gamesV2`);
+    const gamesApiUrl = new URL(`https://games.roblox.com/v2/groups/${groupId}/gamesV2&sortOrder=Desc`);
     gamesApiUrl.searchParams.append('accessFilter', '1');
     gamesApiUrl.searchParams.append('limit', '100');
     gamesApiUrl.searchParams.append('sortOrder', 'Asc');
@@ -21,7 +18,6 @@ export async function GET(request: Request) {
       gamesApiUrl.searchParams.append('cursor', cursor);
     }
 
-    // Fetch game data from the Roblox API (server-side to bypass CORS)
     const gamesResponse = await fetch(gamesApiUrl.toString());
     if (!gamesResponse.ok) {
       return NextResponse.json({ error: 'Failed to fetch games from Roblox API' }, { status: gamesResponse.status });
@@ -33,17 +29,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: [], nextPageCursor: null });
     }
     
-    // Extract placeIds from the games data
     const placeIds = gamesData.data.map((game: any) => game.rootPlace.id);
 
-    // Fetch game details to get isPlayable status
     const placeDetailsApiUrl = new URL(`https://games.roblox.com/v1/games/multiget-place-details`);
     placeDetailsApiUrl.searchParams.append('placeIds', placeIds.join(','));
 
     const placeDetailsResponse = await fetch(placeDetailsApiUrl.toString());
     const placeDetailsData = placeDetailsResponse.ok ? await placeDetailsResponse.json() : [];
 
-    // Fetch game icons using the new API endpoint
     const thumbnailsApiUrl = new URL(`https://thumbnails.roblox.com/v1/places/gameicons`);
     thumbnailsApiUrl.searchParams.append('placeIds', placeIds.join(','));
     thumbnailsApiUrl.searchParams.append('returnPolicy', 'PlaceHolder');
@@ -58,7 +51,6 @@ export async function GET(request: Request) {
 
     const thumbnailsData = thumbnailsResponse.ok ? await thumbnailsResponse.json() : { data: [] };
 
-    // Merge games data with thumbnail URLs and isPlayable status
     const gamesWithThumbnails = gamesData.data.map((game: any) => {
       const thumbnail = thumbnailsData.data.find((thumb: any) => thumb.targetId === game.rootPlace.id);
       const details = placeDetailsData.find((detail: any) => detail.placeId === game.rootPlace.id);
