@@ -5,15 +5,18 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get('groupId');
     const cursor = searchParams.get('cursor');
+    const sortOrder = searchParams.get('sortOrder');
 
     if (!groupId) {
       return NextResponse.json({ error: 'Group ID is required' }, { status: 400 });
     }
 
-    const gamesApiUrl = new URL(`https://games.roblox.com/v2/groups/${groupId}/gamesV2&sortOrder=Desc`);
+    const gamesApiUrl = new URL(`https://games.roblox.com/v2/groups/${groupId}/gamesV2`);
     gamesApiUrl.searchParams.append('accessFilter', '1');
     gamesApiUrl.searchParams.append('limit', '100');
-    gamesApiUrl.searchParams.append('sortOrder', 'Asc');
+    if (sortOrder) {
+      gamesApiUrl.searchParams.append('sortOrder', sortOrder);
+    }
     if (cursor) {
       gamesApiUrl.searchParams.append('cursor', cursor);
     }
